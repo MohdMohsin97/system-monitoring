@@ -34,13 +34,15 @@ fn read_mem_info() -> Result<MemInfo> {
     Err(Error::new(ErrorKind::NotFound, "Memory data not found"))
 }
 
-pub fn mem_usage_percentage() {
+pub fn mem_usage_percentage() -> f64 {
     let mem_info = read_mem_info().unwrap();
     let mem_usage_percentage =
         (mem_info.total - mem_info.available) as f64 / mem_info.total as f64 * 100 as f64;
 
-    println!("Memory Usage: {:.2}%", mem_usage_percentage);
-    println!("Cached: {}", mem_info.cache);
+    // println!("Memory Usage: {:.2}%", mem_usage_percentage);
+    // println!("Cached: {}", mem_info.cache);
+
+    mem_usage_percentage
 }
 
 #[cfg(test)]

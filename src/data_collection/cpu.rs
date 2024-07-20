@@ -1,10 +1,10 @@
 use std::fs::File;
 use std::io::{self, BufRead, Error, ErrorKind, Result};
-use std::time::Duration;
 use std::thread::sleep;
+use std::time::Duration;
 
 #[derive(Debug)]
-struct CpuTimes {
+pub struct CpuTimes {
     cpu: String,
     user: u64,
     nice: u64,
@@ -53,11 +53,11 @@ fn parse_cputimes(line: String) -> CpuTimes {
     times
 }
 
-fn calculate_cpu_usage<'a>(
-    prev_times: &'a Vec<CpuTimes>,
-    curr_times: &'a Vec<CpuTimes>,
-) -> Vec<(&'a str, f64)> {
-    let mut cpu_percentages: Vec<(&str, f64)> = Vec::new();
+fn calculate_cpu_usage(
+    prev_times: &Vec<CpuTimes>,
+    curr_times: &Vec<CpuTimes>,
+) -> Vec<(String, f64)> {
+    let mut cpu_percentages: Vec<(String, f64)> = Vec::new();
 
     for i in 0..prev_times.len() {
         let prev = &prev_times[i];
@@ -79,41 +79,35 @@ fn calculate_cpu_usage<'a>(
 
         let cpu_percentage = (totald - idled) as f64 / totald as f64 * 100.0;
 
-        cpu_percentages.push((&prev.cpu, cpu_percentage));
+        cpu_percentages.push((prev.cpu.clone(), cpu_percentage));
     }
 
     cpu_percentages
 }
 
-pub fn cpu_usage_percentage() {
+pub fn cpu_usage_percentage() -> Result<Vec<(String, f64)>> {
     let prev = read_cpu_times().expect("Failed to read CPU times");
     // Wait for a second
     sleep(Duration::new(1, 0));
     // Second snapshot
     let curr = read_cpu_times().expect("Failed to read CPU times");
 
-    let cpu_usage = calculate_cpu_usage(&prev, &curr);
+    let cpu_usage: Vec<(String, f64)> = calculate_cpu_usage(&prev, &curr);
 
-    for usage in cpu_usage {
-        println!("{} usage is {:.2}", usage.0, usage.1);
-    }
+    // for usage in &cpu_usage {
+    //     println!("{} usage is {:.2}", usage.0, usage.1);
+    // }
+
+    Ok(cpu_usage)
 }
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
-    use std::thread::sleep;
     use super::*;
 
     #[test]
-    fn cpu_usage_percentage() {
-        let prev = read_cpu_times().expect("Failed to read CPU times");
-        // Wait for a second
-        sleep(Duration::new(1, 0));
-        // Second snapshot
-        let curr = read_cpu_times().expect("Failed to read CPU times");
-
-        let cpu_usage = calculate_cpu_usage(&prev, &curr);
+    fn cpu_percentage() {
+        let cpu_usage = cpu_usage_percentage().unwrap();
 
         for usage in cpu_usage {
             println!("{} usage is {:.2}", usage.0, usage.1);

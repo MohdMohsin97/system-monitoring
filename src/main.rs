@@ -1,11 +1,51 @@
+use crossterm::{
+    event::{self, Event, KeyCode},
+    execute,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+};
+use std::{io, time::Duration};
+use tokio::time::interval;
+use tui::{backend::CrosstermBackend, Terminal};
+use ui::{ui, App};
 
+mod data_collection;
+mod ui;
 
-mod data_collection; 
+#[tokio::main]
+async fn main() -> Result<(), io::Error> {
+    // setup terminal
+    enable_raw_mode()?;
+    let mut stdout = io::stdout();
+    execute!(stdout, EnterAlternateScreen)?;
+    let backend = CrosstermBackend::new(stdout);
+    let mut terminal = Terminal::new(backend)?;
 
-fn main() {
+    let mut app = App::new();
+
+    let mut tick_rate = interval(Duration::from_secs(1));
+
     loop {
-        // First snapshot
-        data_collection::cpu_usage_percentage();
-        data_collection::mem_usage_percentage();
+        terminal.draw(|f| {
+            ui(f, &app);
+        })?;
+
+        if crossterm::event::poll(Duration::from_millis(100))? {
+            if let Event::Key(key) = event::read()? {
+                if key.code == KeyCode::Char('q') {
+                    break;
+                }
+            }
+        }
+
+        app.update();
+
+        tick_rate.tick().await;
     }
+
+    // restore terminal
+    disable_raw_mode()?;
+    execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
+    terminal.show_cursor()?;
+
+    Ok(())
 }
